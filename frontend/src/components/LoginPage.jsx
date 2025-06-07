@@ -1,4 +1,4 @@
-import React, { useState,useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import api from "../api";
@@ -8,27 +8,24 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
-
   const { login, loggedIn } = useAuth();
 
   useEffect(() => {
     if (loggedIn) {
-      navigate("/dashboard"); // Redirect if already logged in
+      navigate("/dashboard");
     }
   }, [loggedIn, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
     try {
-      const response = await api.post("/login", {
+      // Remove response assignment since we don't use it
+      await api.post("/login", {
         email: email.toLowerCase().trim(),
         password
       });
-      login();
-      if (response.status === 200) {
-        navigate("/dashboard");
-      }
+      login(); // This is still needed for auth context
+      navigate("/dashboard");
     } catch (error) {
       alert(error.response?.data?.message || "Login failed. Please try again.");
     }

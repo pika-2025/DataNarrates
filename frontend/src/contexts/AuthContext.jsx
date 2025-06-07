@@ -1,5 +1,4 @@
-// src/contexts/AuthContext.jsx
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import api from "../api";
 
 const AuthContext = createContext();
@@ -7,18 +6,53 @@ const AuthContext = createContext();
 export function AuthProvider({ children }) {
   const [loggedIn, setLoggedIn] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [userData, setUserData] = useState(null);
 
-  useEffect(() => {
-    api.get("/check-auth")
-      .then((res) => setLoggedIn(res.data.logged_in))
-      .finally(() => setLoading(false));
+  const checkAuth = useCallback(async () => {
+    try {
+      const response = await api.get("/check-auth");
+      if (response.data.logged_in) {
+        setUserData(response.data.user);
+        setLoggedIn(true);
+      } else {
+        setLoggedIn(false);
+        setUserData(null);
+      }
+    } catch (error) {
+      setLoggedIn(false);
+      setUserData(null);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const login = () => setLoggedIn(true);
-  const logout = () => setLoggedIn(false);
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
+  const login = async () => {
+    await checkAuth();
+  };
+
+  const logout = async () => {
+    try {
+      await api.post("/logout");
+      setLoggedIn(false);
+      setUserData(null);
+      window.location.href = "/login";
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  };
 
   return (
-    <AuthContext.Provider value={{ loggedIn, loading, login, logout}}>
+    <AuthContext.Provider value={{ 
+      loggedIn, 
+      loading, 
+      userData,
+      login, 
+      logout 
+    }}>
       {children}
     </AuthContext.Provider>
   );

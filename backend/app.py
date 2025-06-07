@@ -10,10 +10,15 @@ CORS(
     supports_credentials=True,
     methods=["GET","POST","OPTIONS"],
     allow_headers=["Content-Type", "Authorization"],
-    expose_headers={"Set-Cookie"}
+    expose_headers=["Set-Cookie"]
 )
 
 app.secret_key = "piyush"               # Used to sign session cookies
+app.config.update(
+    SESSION_COOKIE_SAMESITE='Lax',
+    SESSION_COOKIE_SECURE=False,  # True in production with HTTPS
+    SESSION_COOKIE_HTTPONLY=True
+)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///database.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False        # Disable warning
 
@@ -70,16 +75,14 @@ def login():
 @app.route("/check-auth")
 def check_auth():
     user_id = session.get("user_id")
-    return jsonify(logged_in=user_id is not None), 200
-
-@app.route("/user")
-def get_user():
-    user_id = session.get("user_id")
     if not user_id:
-        return jsonify(error="Unauthorized"), 401
+        return jsonify(logged_in=False), 200
         
     user = User.query.get(user_id)
-    return jsonify(name=user.name, email=user.email)
+    return jsonify(
+        logged_in=True,
+        user={ "name": user.name, "email": user.email }
+    ), 200
 
 
 
@@ -87,9 +90,17 @@ def get_user():
 @app.route("/logout", methods=["POST"])
 def logout():
     # Remove user_id from the session
-    session.pop("user_id", None)
-    return jsonify(message="Logged out successfully"), 200
+    session.clear()
+    response = jsonify(message="Logged out successfully")
+    response.set_cookie('session', '', expires=0)
+    return response, 200
+
 
 
 if __name__ == "__main__":
     app.run(debug=True)
+
+
+
+
+

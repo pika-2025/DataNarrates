@@ -7,10 +7,9 @@ import "./DashboardPage.css";
 import AIAgent from './AIAgent';
 
 export default function DashboardPage() {
-  const { loggedIn, loading, logout } = useAuth();
+  const { loggedIn, loading, logout, userData } = useAuth();
   const navigate = useNavigate();
   const [profileOpen, setProfileOpen] = useState(false);
-  const [userData, setUserData] = useState({ name: "", email: "" });
   const profileRef = useRef(null);
 
   // Authentication check
@@ -19,19 +18,6 @@ export default function DashboardPage() {
       navigate("/login");
     }
   }, [loggedIn, loading, navigate]);
-
-  // Fetch user data
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const response = await api.get("/user");
-        setUserData(response.data);
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-      }
-    };
-    if (loggedIn) fetchUserData();
-  }, [loggedIn]);
 
   // Close profile dropdown on outside click
   useEffect(() => {
@@ -50,6 +36,17 @@ export default function DashboardPage() {
     // Add your file upload logic here
   };
 
+  // Proper logout handler
+  const handleLogout = async () => {
+    try {
+      await logout(); 
+      window.location.href = "/login"; // Force full reload
+    } catch (error) {
+      alert("Logout failed");
+    }
+  };
+
+
   if (loading) return <div className="loading">Loading...</div>;
 
   return (
@@ -66,17 +63,20 @@ export default function DashboardPage() {
             onClick={() => setProfileOpen(!profileOpen)}
           >
             <span className="user-avatar">
-              {userData.name.charAt(0).toUpperCase()}
+              {userData?.name?.charAt(0).toUpperCase() || 'U'}
             </span>
           </button>
 
           {profileOpen && (
             <div className="profile-dropdown">
               <div className="user-info">
-                <div className="user-name">{userData.name}</div>
-                <div className="user-email">{userData.email}</div>
+                <div className="user-name">{userData?.name || 'User'}</div>
+                <div className="user-email">{userData?.email || ''}</div>
               </div>
-              <button className="dropdown-item" onClick={logout}>
+              <button 
+                className="dropdown-item" 
+                onClick={handleLogout}
+              >
                 Logout
               </button>
             </div>
@@ -93,7 +93,7 @@ export default function DashboardPage() {
           <FileUpload onFileUpload={handleFileUpload} />
         </section>
 
-        {/* Analysis Section (To be implemented) */}
+        {/* Analysis Section */}
         <section className="analysis-section">
           <div className="placeholder-box">
             <h3>Data Preview & Analysis</h3>
